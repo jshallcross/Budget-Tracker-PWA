@@ -1,17 +1,20 @@
 
 let db;
+
 const request = indexedDB.open('budget-tracker-pwa', 1);
+
 
 request.onupgradeneeded = function(event) {
     const db = event.target.result;
-    db.createObjectStore('new_transaction', { autoIncrement: true });
+
+    db.createObjectStore('new_deposit', { autoIncrement: true });
 };
 
 
 request.onsuccess = function(event) {
     db = event.target.result;
     if (navigator.onLine) {
-        uploadTransaction();
+        uploadDeposit();
     }
 };
 
@@ -19,22 +22,21 @@ request.onerror = function(event) {
     console.log(event.target.errorCode);
 };
 
-// Offline saving of transactions
 function saveRecord(record) {
-    const transaction = db.transaction(['new_transaction'], 'readwrite');
+    const transaction = db.transaction(['new_deposit'], 'readwrite');
 
-    const transactionObjectStore = transaction.objectStore('new_transaction');
+    const depositObjectStore = transaction.objectStore('new_deposit');
 
-    transactionObjectStore.add(record);
+    depositObjectStore.add(record);
 }
 
-// Uploads transactions
-function uploadTransaction() {
-    const transaction = db.transaction(['new_transaction'], 'readwrite');
+function uploadDeposit() {
+    const transaction = db.transaction(['new_deposit'], 'readwrite');
 
-    const transactionObjectStore = transaction.objectStore('new_transaction');
+    const depositObjectStore = transaction.objectStore('new_deposit');
 
-    const getAll = transactionObjectStore.getAll();
+    const getAll = depositObjectStore.getAll();
+
 
 getAll.onsuccess = function() {
     if (getAll.result.length > 0) {
@@ -51,12 +53,11 @@ getAll.onsuccess = function() {
         if (serverResponse.message) {
             throw new Error(serverResponse);
         }
-        const transaction = db.transaction(['new_transaction'], 'readwrite');
-        const transactionObjectStore = transaction.objectStore('new_transaction');
+        const transaction = db.transaction(['new_deposit'], 'readwrite');
+        const depositObjectStore = transaction.objectStore('new_deposit');
 
-        transactionObjectStore.clear();
-
-        alert('All offline transactions has been submitted!');
+        depositObjectStore.clear();
+        alert('All saved deposit has been submitted!');
         })
         .catch(err => {
             console.log(err);
@@ -67,5 +68,5 @@ getAll.onsuccess = function() {
     
 }
 
-// Listener for budget tracker to go online
-window.addEventListener('online', uploadtransaction);
+// listen for app coming back online
+window.addEventListener('online', uploadDeposit);
