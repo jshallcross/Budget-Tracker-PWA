@@ -1,32 +1,26 @@
 const APP_PREFIX = 'Budget-Tracker-';     
-const VERSION = 'version_01';
-const CACHE_NAME = APP_PREFIX + VERSION;
-
+const CACHE_NAME = "static-cache-v2";
+const DATA_CACHE_NAME = "data-cache-v1";
 
 const FILES_TO_CACHE = [
-    "./index.html",
+    "/",
+    "/index.html",
     "css/styles.css",
     "js/index.js",
+    "js/idb.js",
+    "/icons/icon-72x72.png",
+    "/icons/icon-96x96.png",
+    "/icons/icon-128x128.png",
+    "/icons/icon-144x144.png",
+    "/icons/icon-152x152.png",
+    "/icons/icon-192x192.png",
+    "/icons/icon-384x384.png",
+    "/icons/icon-512x512.png",
+    "/manifest.json"
 ];
 
 
 
-self.addEventListener('fetch', function (e) {
-    console.log('fetch request : ' + e.request.url)
-    e.respondWith(
-      caches.match(e.request).then(function (request) {
-        if (request) {
-          console.log('responding with cache : ' + e.request.url)
-          return request
-        } else {
-          console.log('file is not cached, fetching : ' + e.request.url)
-          return fetch(e.request)
-        }
-  
-      })
-    )
-  })
-  
   // Cache resources
   self.addEventListener('install', function (e) {
     e.waitUntil(
@@ -42,14 +36,14 @@ self.addEventListener('fetch', function (e) {
     e.waitUntil(
       caches.keys().then(function(keyList) {
 
-        let cacheKeeplist = keyList.filter(function(key) {
+        let cacheKeepList = keyList.filter(function(key) {
           return key.indexOf(APP_PREFIX);
         });
-        cacheKeeplist.push(CACHE_NAME);
+        cacheKeepList.push(CACHE_NAME);
   
         return Promise.all(
           keyList.map(function(key, i) {
-            if (cacheKeeplist.indexOf(key) === -1) {
+            if (cacheKeepList.indexOf(key) === -1) {
               console.log('deleting cache : ' + keyList[i]);
               return caches.delete(keyList[i]);
             }
@@ -58,3 +52,36 @@ self.addEventListener('fetch', function (e) {
       })
     );
   });
+
+// event listener fetch
+self.addEventListener("fetch", function (evt) {
+  if (evt.request.url.includes("/api/")) {
+    evt.respondWith(
+      caches
+        .open(DATA_CACHE_NAME)
+        .then((cache) => {
+          return fetch(evt.request)
+            .then((response) => {
+              if (response.status === 200) {
+                console.log("Status 200 OK");
+                cache.put(evt.request.url, response.clone());
+              }
+              return response;
+            })
+            .catch((err) => {
+              return cache.match(evt.request);
+            });
+        })
+        .catch((err) => console.log(err))
+    );
+    return;
+  }
+
+  evt.respondWith(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(evt.request).then((response) => {
+        return response || fetch(evt.request);
+      });
+    })
+  );
+});
